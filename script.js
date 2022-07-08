@@ -26,21 +26,28 @@ function p4_inspirations() {
         ];
 }
 
+
+const MAX_R = {apple: 150, cherry: 150, strawberry: 50};
+const MIN_R = {apple: 20, cherry: 10, strawberry: 5};
+
+const MAX_C = {apple: 25, cherry: 20, strawberry: 50};
+const MIN_C = {apple: 0, cherry: 1, strawberry: 1};
+
 function p4_initialize(inspiration) {
   resizeCanvas(inspiration.image.width / 4, inspiration.image.height / 4);
   if (inspiration.name.indexOf("apple") != -1){
     return {type: "apple", r_range:{max: 100, min: 20}, opa_range:{min: 128, max: 255}, intervals: 5, 
-            sample_x: [0, 1], sample_y:[0, 1], c_rangemin_c: 0, max_c: 10};    
+            sample_x: {min: 0, max: 1}, sample_y:{min: 0, max: 1}, c_range:{min: 0, max: 10}};    
   }
 
   if (inspiration.name.indexOf("cherry") != -1){
     return {type: "cherry", r_range:{max: 100, min: 20}, opa_range:{min: 128, max: 255}, intervals: 3, 
-            sample_x: [0, 1], sample_y:[0, 1], c_rangemin_c: 0, max_c: 10};    
+            sample_x: {min: 0, max: 1}, sample_y:{min: 0, max: 1}, c_range:{min: 0, max: 10}};    
   }
 
   if (inspiration.name.indexOf("strawberry") != -1){
     return {type: "strawberry", r_range:{max: 100, min: 5}, opa_range:{min: 128, max: 255}, intervals: 4, 
-            sample_x: [0, 1], sample_y:[0, 1], c_rangemin_c: 1, max_c: 10};    
+            sample_x: {min: 0, max: 1}, sample_y:{min: 0, max: 1}, c_range:{min: 1, max: 10}};    
   }
 }
 
@@ -58,16 +65,16 @@ function p4_render(design, inspiration) {
     //console.log(x);
     y = 0;
     for (let j = 0; j < design.intervals; j++){
-      let k = floor(random(design.min_c, design.max_c+1));
+      let k = floor(random(design.c_range.min, design.c_range.max+1));
       for (let n = 0; n < k; n++){
-        let sx = random(x + design.sample_x[0] * iw, x + design.sample_x[1] * iw);
-        let sy = random(y + design.sample_y[0] * ih, y + design.sample_x[1] * ih);
+        let sx = random(x + design.sample_x.min * iw, x + design.sample_x.max * iw);
+        let sy = random(y + design.sample_y.min * ih, y + design.sample_x.max * ih);
         
         let px_color = inspiration.image.get(sx, sy);
         //console.log(px_color)
-        px_color[3] = random(design.min_opa, design.max_opa);
+        px_color[3] = random(design.opa_range.min, design.opa_range.max);
         fill(px_color);
-        circle(random(x, x + iw), random(y, y + ih), random(design.min_r, design.max_r));
+        circle(random(x, x + iw), random(y, y + ih), random(design.r_range.min, design.r_range.max));
       }
       y += ih;
     }
@@ -83,31 +90,29 @@ function mut(num, min, max, rate) {
 }
 
 
-const MAX_R = {apple: 200, cherry: 100, strawberry: 50};
-const MIN_R = {apple: 20, cherry: 10, strawberry: 5};
-
-const MAX_C = {apple: 15, cherry: 5, strawberry: 10};
-const MIN_C = {apple: 0, cherry: 1, strawberry: 1};
 
 const INIT_INTERVALS = 8;
 
-
+function gen_mut_param(param, mn, mx, rate){
+  let i = mut(param.min, mn, param.max, rate);
+  let j = mut(param.max, param.min, mx, rate);
+  param.max = max(i, j);
+  param.min = min(i, j);
+  return param;
+}
 
 function p4_mutate(design, inspiration, rate) {
   //console.log(design.min_r, MIN_R[design.type], design.max_r, rate)
-  design.min_r = mut(design.min_r, MIN_R[design.type], design.max_r, rate);
-  design.max_r = mut(design.max_r, design.min_r, MAX_R[design.type], rate);
-  
-  design.min_opa = mut(design.min_opa, 0, design.max_opa, rate);
-  design.max_opa = mut(design.max_opa, design.min_r, 255, rate);
+  design.r_range = gen_mut_param(design.r_range, MIN_R[design.type], MAX_R[design.type], rate);
+ // console.log(design.r_range)
+
+
+  design.opa_range = gen_mut_param(design.opa_range, 0, 255, rate);
 
   design.intervals =  floor(mut(design.intervals, 2, 20, rate));
-  design.sample_x[0] = mut(design.sample_x[0], 0, design.sample_x[1], rate);
-  design.sample_x[1] = mut(design.sample_x[1], design.sample_x[0], 1, rate);
-  design.sample_x[0] = mut(design.sample_y[0], 0, design.sample_y[1], rate);
-  design.sample_x[1] = mut(design.sample_y[1], design.sample_y[0], 1, rate);
+  //console.log(design.intervals)
+  design.sample_x = gen_mut_param(design.sample_x, 0, 1, rate);
+  design.sample_y = gen_mut_param(design.sample_y, 0, 1, rate);
   
-  design.min_c = mut(design.min_c, MIN_C[design.type], design.max_c, rate);
-  design.max_c = mut(design.max_c, design.min_c, MAX_C[design.type], rate);
-
+  design.c_range = gen_mut_param(design.c_range, MIN_C[design.type], MAX_C[design.type], rate);
 }
